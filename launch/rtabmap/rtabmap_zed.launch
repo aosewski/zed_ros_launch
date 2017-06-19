@@ -1,0 +1,60 @@
+<launch>
+  <!-- ===================================================================== -->
+  <!-- RTAB-MAP CONFIGURATION PARAMETERS -->
+  <arg name="approx_sync"       default="false"/>
+  <arg name="visual_odometry"   default="false"/>
+  <arg name="compressed"        default="false"/>
+
+  <arg name="base_frame_id"     default="camera_link"/>
+  <arg name="zed_namespace"     default="camera"/>
+  
+  <!-- ZED TOPICS -->
+  <arg name="zed_rgb_topic"           default="/$(arg zed_namespace)/rgb/image_rect_color"/>
+  <arg name="zed_depth_topic"         default="/$(arg zed_namespace)/depth/depth_registered"/>
+  <arg name="zed_camera_info_topic"   default="/$(arg zed_namespace)/rgb/camera_info"/>
+  <arg name="zed_odom_topic"          default="/$(arg zed_namespace)/odom"/>
+
+  <!-- ===================================================================== -->
+  <!-- DEBUGGING FACILITIES -->
+  <arg name="debug"             default="0"/>
+  <arg name="example_prefix"    default=""                    unless="$(arg debug)"/>
+  <arg name="example_prefix"    default="screen -d -m gdb --args" if="$(arg debug)"/>
+
+  <!-- ===================================================================== -->
+  <!-- SETUP REMOTE MACHINE (JetsonTx2) -->
+  <arg name="jetson_tx2_id"          default="jetsonTx2"/>
+  <machine name="$(arg jetson_tx2_id)" address="192.168.2.105" 
+    env-loader="$(find zed_ros_launch)/config/tx2_env_cfg.sh"
+    user="ubuntu" default="false" timeout="5.0"/>
+      
+  <!-- ===================================================================== -->
+  <!-- RUN ZED CAMERA -->
+  <include file="$(find zed_ros_launch)/launch/zed.launch">
+    <arg name="robot_id"        value="$(arg jetson_tx2_id)"/>
+    <arg name="zed_namespace"   value="camera"/>
+  </include>
+
+  <!-- ===================================================================== -->
+  <!-- RUN RTAB-MAP (locally on this machine) -->
+  <include file="$(find zed_ros_launch)/launch/rtab_rgbd_mapping.launch">
+    <arg name="zed_namespace"   value="$(arg zed_namespace)"/>
+    <arg name="base_frame_id"   value="$(arg base_frame_id)"/>
+  </include>  
+
+  <!-- ===================================================================== -->
+  <!-- VISUALIZATION -->
+  <include file="remote_rtabmapviz.launch">
+    <arg name="base_frame_id"     value="$(arg base_frame_id)"/>
+    <arg name="approx_sync"       value="$(arg approx_sync)"/>
+
+    <arg name="rgb_topic"         value="$(arg zed_rgb_topic)"/>
+    <arg name="depth_topic"       value="$(arg zed_depth_topic)"/>
+    <arg name="camera_info_topic" value="$(arg zed_camera_info_topic)"/>
+    <arg name="odom_topic"        value="$(arg zed_odom_topic)"/>
+
+    <arg name="compressed"        value="$(arg compressed)"/>
+    <arg name="visual_odometry"   value="$(arg visual_odometry)"/>
+  </include>
+
+</launch>
+
